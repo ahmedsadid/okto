@@ -105,7 +105,10 @@ def main():
     prayer_time_style = """
         <div style="
             padding: 10px;
-            background-color: #f0f2f6;
+            background-color: var(secondary);
+            color: var(--st-color-text);
+            border-color: var(--st-color-text);
+            border-style: solid;
             border-radius: 5px;
             margin: 5px 0;
             display: flex;
