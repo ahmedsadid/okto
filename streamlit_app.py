@@ -4,26 +4,27 @@ import pytz
 import requests
 from streamlit_geolocation import streamlit_geolocation
 
-
-
-def fetch_prayer_times(loc, method, asr_calc):
-    date = datetime.now().strftime("%d-%m-%Y")
-    url = f"https://api.aladhan.com/v1/timingsByAddress/{date}"
-    params = {
+def fetch_prayer_times(loc, method, asr_calc=0):
+    try:
+        date = datetime.now().strftime("%d-%m-%Y")
+        url = f"https://api.aladhan.com/v1/timingsByAddress/{date}"
+        params = {
             "address": loc,
             "method": method,
             "school": asr_calc
         }
-    response = requests.get(url, params=params)
-    response.raise_for_status()
-    data = response.json()
-        
-    if data["code"] == 200:
-        return data["data"]["timings"]
-    else:
-        st.error("Error fetching prayer times")
+        response = requests.get(url, params=params)
+        response.raise_for_status()
+        data = response.json()
+            
+        if data["code"] == 200:
+            return data["data"]["timings"]
+        else:
+            st.error("Error fetching prayer times")
+            return None
+    except requests.RequestException as e:
+        st.error(f"Error connecting to the API: {str(e)}")
         return None
-
 
 def get_calculation_method_number(method_name):
     """Convert method name to API method number"""
@@ -33,33 +34,18 @@ def get_calculation_method_number(method_name):
         "Egyptian General Authority of Survey": 5,
         "Umm Al-Qura University, Makkah": 4,
         "University of Islamic Sciences, Karachi": 1,
-        "Institute of Geophysics, University of Tehran": 7,
-        "Shia Ithna-Ashari, Leva Institute, Qum": 0
     }
     return method_map.get(method_name)  
-
 
 def main():
     st.title("okto")
     st.title("Prayer Times For Today")
     
+    # Initialize session state
+    if 'prayer_times' not in st.session_state:
+        st.session_state.prayer_times = None
     
-    # col1, col2, col3 = st.columns([1, 2, 1])
-    # with col2:
-        # st.markdown("<h3 style='text-align: center;'>Current time in </h3>", unsafe_allow_html=True)
-        # time_placeholder = st.empty()
-        # Example of how to update the time:
-        # time_placeholder.markdown("<h2 style='text-align: center;'>12:00:00</h2>", unsafe_allow_html=True)
-    
-
-    col1, col2 = st.columns([3, 1])
-    with col1:
-        location_search = st.text_input("Search for a location (City, Country)")
-    with col2:
-        st.write("")  # Add some spacing to align with text input
-        search_button = st.button("Search")
-
-
+    # Method selection
     col1, col2 = st.columns(2)
     
     with col1:
@@ -71,8 +57,6 @@ def main():
                 "Egyptian General Authority of Survey",
                 "Umm Al-Qura University, Makkah",
                 "University of Islamic Sciences, Karachi",
-                "Institute of Geophysics, University of Tehran",
-                "Shia Ithna-Ashari, Leva Institute, Qum"
             ]
         )
     
@@ -85,24 +69,40 @@ def main():
             ]
         )
 
-    search_button = st.button("Search")
+    # Location search
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        location_search = st.text_input("Search for a location (City, Country)")
+    with col2:
+        st.write("") 
+        search_button = st.button("Search")
 
+    # Handle search
+    if search_button and location_search:
+        try:
+            method_number = get_calculation_method_number(calculation_method)
+            asr_calc = {"Standard": 0, "Hanafi": 1}.get(asr_calculation)
+            
+            prayer_times = fetch_prayer_times(location_search, method_number, asr_calc)
+            
+            if prayer_times:
+                st.session_state.prayer_times = prayer_times
+                st.success(f"Prayer times fetched for {location_search}")
+        except Exception as e:
+            st.error(f"An error occurred: {str(e)}")
 
-
-
-
+    # Prayer times display
     st.markdown("### Prayer Times")
     
-    prayer_times = {
-        "Fajr": st.container(),
-        "Sunrise": st.container(),
-        "Duhr": st.container(),
-        "Asr": st.container(),
-        "Maghrib": st.container(),
-        "Dusk": st.container(),
-        "Isha": st.container(),
-        "Midnight": st.container()
-    }
+    prayer_names = [
+        "Fajr",
+        "Sunrise",
+        "Dhuhr",
+        "Asr",
+        "Maghrib",
+        "Isha",
+        "Midnight"
+    ]
     
     prayer_time_style = """
         <div style="
@@ -119,18 +119,19 @@ def main():
         </div>
     """
     
-    for prayer_name, container in prayer_times.items():
-        with container:
-            # Example of how to populate with actual times:
-            # time_value = "04:30"  # This would come from your API
-            time_value = "--:--"  # Placeholder
-            st.markdown(
-                prayer_time_style.format(
-                    prayer_name=prayer_name,
-                    time=time_value
-                ),
-                unsafe_allow_html=True
-            )
+    # Display prayer times
+    for name in prayer_names:
+        time_value = "--:--"
+        if st.session_state.prayer_times and name in st.session_state.prayer_times:
+            time_value = st.session_state.prayer_times[name]
+        
+        st.markdown(
+            prayer_time_style.format(
+                prayer_name=name,
+                time=time_value
+            ),
+            unsafe_allow_html=True
+        )
 
 if __name__ == "__main__":
     main()
