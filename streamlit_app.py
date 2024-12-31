@@ -1,8 +1,6 @@
 import streamlit as st
 from datetime import datetime
-import pytz
 import requests
-from streamlit_geolocation import streamlit_geolocation
 
 def fetch_prayer_times(loc, method, asr_calc=0):
     try:
