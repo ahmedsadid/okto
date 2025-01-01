@@ -39,9 +39,15 @@ def main():
     st.title("okto")
     st.title("Prayer Times For Today")
     
-    # Initialize session state
+    # Initialize session state variables
     if 'prayer_times' not in st.session_state:
         st.session_state.prayer_times = None
+    if 'location_search' not in st.session_state:
+        st.session_state.location_search = ""
+    if 'calculation_method' not in st.session_state:
+        st.session_state.calculation_method = "Muslim World League"
+    if 'asr_calculation' not in st.session_state:
+        st.session_state.asr_calculation = "Standard"
     
     # Method selection
     col1, col2 = st.columns(2)
@@ -55,7 +61,8 @@ def main():
                 "Egyptian General Authority of Survey",
                 "Umm Al-Qura University, Makkah",
                 "University of Islamic Sciences, Karachi",
-            ]
+            ],
+            key="calculation_method"
         )
     
     with col2:
@@ -64,19 +71,23 @@ def main():
             options=[
                 "Standard",
                 "Hanafi"
-            ]
+            ],
+            key="asr_calculation"
         )
 
     # Location search
     col1, col2 = st.columns([3, 1])
     with col1:
-        location_search = st.text_input("Search for a location (City, Country)")
+        location_search = st.text_input(
+            "Search for a location (City, Country)",
+            key="location_search"
+        )
     with col2:
         st.write("") 
         search_button = st.button("Search")
 
     # Handle search
-    if search_button and location_search:
+    if search_button:
         try:
             method_number = get_calculation_method_number(calculation_method)
             asr_calc = {"Standard": 0, "Hanafi": 1}.get(asr_calculation)
