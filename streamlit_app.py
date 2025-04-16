@@ -9,7 +9,8 @@ def fetch_prayer_times(loc, method, asr_calc=0):
         params = {
             "address": loc,
             "method": method,
-            "school": asr_calc
+            "school": asr_calc,
+            "midnightMode": 1
         }
         response = requests.get(url, params=params)
         response.raise_for_status()
